@@ -10,11 +10,22 @@ import csv
 def usage(return_val):
     print("""
 Raw Data Parser:
-    USAGE: python3 parse-raw-data.py [-dfh]
+    USAGE: python3 parse-raw-data.py [FLAGS] [OPTIONS]
     -d DIRECTORY: directory of raw data
     -f FILE: specific file to parse
     -o DIRECTORY: directory to place output data in
-    -h: print out this message""")
+    -t TASK: specify what the parser should do
+    -h: print out this message
+
+    DEFAULTS:
+    RAW_DATA_DIRECTORY = data/raw/
+    RAW_FILE = charting-m-points-2010s.csv
+    OUTPUT_DIRECTORY = data/data-sorted-by-player/
+    TASK = separate_by_player
+
+    SUPPORTED TASKS:
+    separate_by_player: read the raw file and sort match data into specific player files (appends to the file, so chance of duplicate lines)
+    """)
     sys.exit(return_val)
 
 def separate_by_player(raw_path: str, output_dir: str) -> list:
@@ -44,6 +55,7 @@ def main():
     raw_data_directory = "data/raw/"
     raw_data_file = "charting-m-points-2010s.csv"
     output_directory = "data/data-sorted-by-player/"
+    task = "separate_by_player"
     # take command line arguments
     arguments = sys.argv[1:]
     while arguments:
@@ -65,11 +77,19 @@ def main():
                 output_directory = arguments.pop(0)
             except:
                 usage(1)
+        elif current_arg == '-t':
+            try:
+                task = arguments.pop(0)
+            except:
+                usage(1)
         else:
             usage(1)
 
-    # parse the strings
-    parsed_data = separate_by_player(raw_data_directory + raw_data_file, output_directory)
+    if task == "separate_by_player":
+        separate_by_player(raw_data_directory + raw_data_file, output_directory)
+    else:
+        print("unknown task:", task)
+        usage(1)
     # write them into an output file (json?)
 if __name__ == "__main__":
     main()
