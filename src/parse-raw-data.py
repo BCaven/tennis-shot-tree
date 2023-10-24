@@ -29,7 +29,7 @@ def main():
     """
         Main function, hooray
     """
-    raw_data_directory = "data/raw/"
+    raw_data_directory = "../data/raw/"
     raw_data_file = "charting-m-points-2010s.csv"
     # take command line arguments
     arguments = sys.argv[1:]
