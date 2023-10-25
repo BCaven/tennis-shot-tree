@@ -45,6 +45,24 @@ def separate_by_player(raw_path: str, output_dir: str):
                         csv_writer.writeheader()
                     csv_writer.writerow(row)
 
+def parse_individual_point(raw_point: str) -> list:
+    """
+        Parses point sentences into a list of individual shots
+
+        RULES:
+            First character is always a number (4, 5, 6)
+            It can be followed by a '+'
+            The return is a letter followed by two numbers (direction, depth)
+            After that, the format is a letter followed by a number
+                The letter is a shot, the number is the direction of the shot (1, 2, 3)
+            The sentence ends with a character describing how the point ends (@, #, *)
+            In the case of the point ending on an error, there will be an extra character immediately before which describes the type of error (n, w, d, x)
+    """
+    individual_chars = raw_points.split()
+
+    return []
+
+
 def main():
     """
         Main function, hooray
