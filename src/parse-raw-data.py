@@ -53,8 +53,9 @@ def parse_individual_point(raw_point: str) -> list:
             First character is always a number (4, 5, 6)
             It can be followed by a '+'
             The return is a letter followed by two numbers (direction, depth)
-            After that, the format is a letter followed by a number
-                The letter is a shot, the number is the direction of the shot (1, 2, 3)
+            After that, the format is a letter followed by a symbol and a number
+                The letter is a shot, the symbol is where the shot was hit, the number is the direction of the shot (1, 2, 3)
+                The number and symbol are technically optional, if the symbol is not included, the assumed "natural" spot to hit the shot will be used (i.e. a volley is assumed to be hit at the net, a groundstroke is assumed to be hit at the baseline)
             The sentence ends with a character describing how the point ends (@, #, *)
             In the case of the point ending on an error, there will be an extra character immediately before which describes the type of error (n, w, d, x)
         NOTE:
@@ -72,11 +73,6 @@ def parse_individual_point(raw_point: str) -> list:
     if len(return_shot) > 3: # whoops, someone put data in poorly
         print("Error, invalid string")
         return None
-    # TODO write a better "end of point" parser
-    # before getting the shots hit in the rally, get the outcome of the point
-    end = individual_chars.pop()
-    if individual_chars[-1].isalpha(): # if it was an error, there will be a letter describing where the shot went
-        end += individual_chars.pop()
     # letters followed by numbers
     while individual_chars:
         shot_type = individual_chars.pop(0)
