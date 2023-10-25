@@ -28,7 +28,7 @@ Raw Data Parser:
     """)
     sys.exit(return_val)
 
-def separate_by_player(raw_path: str, output_dir: str) -> list:
+def separate_by_player(raw_path: str, output_dir: str):
     """
         Separates raw data into files for individual players
         Each point is placed in the file for both players
@@ -44,9 +44,6 @@ def separate_by_player(raw_path: str, output_dir: str) -> list:
                         # add header to csv file
                         csv_writer.writeheader()
                     csv_writer.writerow(row)
-
-
-    return []
 
 def main():
     """
