@@ -57,10 +57,44 @@ def parse_individual_point(raw_point: str) -> list:
                 The letter is a shot, the number is the direction of the shot (1, 2, 3)
             The sentence ends with a character describing how the point ends (@, #, *)
             In the case of the point ending on an error, there will be an extra character immediately before which describes the type of error (n, w, d, x)
+        NOTE:
+            If a shot direction or position is not given, it is represented by the character '_'
+
     """
     individual_chars = raw_points.split()
-
-    return []
+    shots = []
+    serve = individual_chars.pop(0)
+    if (individual_chars[0] == "+"):
+        serve += individual_chars.pop(0)
+    return_shot = individual_chars.pop(0)
+    while individual_chars[0].isdigit(): # add the return direction and depth if applicable
+        return_shot += individual_chars.pop(0)
+    if len(return_shot) > 3: # whoops, someone put data in poorly
+        print("Error, invalid string")
+        return None
+    # TODO write a better "end of point" parser
+    # before getting the shots hit in the rally, get the outcome of the point
+    end = individual_chars.pop()
+    if individual_chars[-1].isalpha(): # if it was an error, there will be a letter describing where the shot went
+        end += individual_chars.pop()
+    # letters followed by numbers
+    while individual_chars:
+        shot_type = individual_chars.pop(0)
+        shot_position = '_'
+        shot_direction = '_'
+        if not shot_type.isalpha():
+            print("error, invalid string")
+            return None
+        if individual_chars[0] in ['+', '-', '=']:
+            shot_position = individual_chars.pop(0)
+        if individual_chars[0].isdigit():
+            shot_direction = individual_chars.pop(0)
+        shots.append(shot_type + shot_position + shot_direction)
+    # add the serve, return and end back into the list of shots
+    shots.insert(0, return_shot)
+    shots.insert(0, serve)
+    shots.append(end)
+    return shots
 
 
 def main():
