@@ -25,73 +25,57 @@ Raw Data Parser:
 
     SUPPORTED TASKS:
     separate_by_player: read the raw file and sort match data into specific player files (appends to the file, so chance of duplicate lines)
+    read_raw_data: print raw data dictionaries to stdin
+    parse_all_data: split each point into individual shots and print the points to stdin
     """)
     sys.exit(return_val)
 
-def separate_by_player(raw_path: str, output_dir: str):
+def separate_by_player(raw_path: str, output_dir: str, input_encoding='windows-1252', output_encoding='utf8'):
     """
         Separates raw data into files for individual players
         Each point is placed in the file for both players
     """
-    with open(raw_path, 'r', encoding='windows-1252') as raw_file:
+    with open(raw_path, 'r', encoding=input_encoding) as raw_file:
         csv_reader = csv.DictReader(raw_file)
         for row in csv_reader:
             for player in row['match_id'].split('-')[-2:]:
                 output_file_name = output_dir + player.strip("_") + ".csv"
-                with open(output_file_name, 'a', encoding='utf8') as output_file:
+                with open(output_file_name, 'a', encoding=output_encoding) as output_file:
                     csv_writer = csv.DictWriter(output_file, fieldnames=row.keys())
                     if os.stat(output_file_name).st_size == 0:
-                        # add header to csv file
+                        # add header to csv file if it is a new file
                         csv_writer.writeheader()
                     csv_writer.writerow(row)
+def read_raw_data(raw_path: str, encoding="utf8") -> dict:
+    """
+        Generates a dictionary of the next shot in the file
+    """
+    with open(raw_path, 'r', encoding=encoding) as raw_file:
+        csv_reader = csv.DictReader(raw_file)
+        for row in csv_reader:
+            yield row
 
-def parse_individual_point(raw_point: str) -> list:
+def parse_individual_point(raw_point: str, possible_shots="fbrsvzopuylmhijktq", types_of_faults="nwdxge!V", let="c", positioning_codes="+-=;^", possible_endings="CSR") -> list:
     """
         Parses point sentences into a list of individual shots
 
         RULES:
-            First character is always a number (4, 5, 6)
-            It can be followed by a '+'
-            The return is a letter followed by two numbers (direction, depth)
-            After that, the format is a letter followed by a symbol and a number
-                The letter is a shot, the symbol is where the shot was hit, the number is the direction of the shot (1, 2, 3)
-                The number and symbol are technically optional, if the symbol is not included, the assumed "natural" spot to hit the shot will be used (i.e. a volley is assumed to be hit at the net, a groundstroke is assumed to be hit at the baseline)
-            The sentence ends with a character describing how the point ends (@, #, *)
-            In the case of the point ending on an error, there will be an extra character immediately before which describes the type of error (n, w, d, x)
-        NOTE:
-            If a shot direction or position is not given, it is represented by the character '_'
-
+            Look at the "Instructions" section of MatchChart.xlsm
     """
-    individual_chars = raw_points.split()
+    # going to build shots backwards, start at the end and go to the beginning
+    individual_chars = [c for c in raw_point]
     shots = []
-    serve = individual_chars.pop(0)
-    if (individual_chars[0] == "+"):
-        serve += individual_chars.pop(0)
-    return_shot = individual_chars.pop(0)
-    while individual_chars[0].isdigit(): # add the return direction and depth if applicable
-        return_shot += individual_chars.pop(0)
-    if len(return_shot) > 3: # whoops, someone put data in poorly
-        print("Error, invalid string")
-        return None
-    # letters followed by numbers
-    while individual_chars:
-        shot_type = individual_chars.pop(0)
-        shot_position = '_'
-        shot_direction = '_'
-        if not shot_type.isalpha():
-            print("error, invalid string")
-            return None
-        if individual_chars[0] in ['+', '-', '=']:
-            shot_position = individual_chars.pop(0)
-        if individual_chars[0].isdigit():
-            shot_direction = individual_chars.pop(0)
-        shots.append(shot_type + shot_position + shot_direction)
-    # add the serve, return and end back into the list of shots
-    shots.insert(0, return_shot)
-    shots.insert(0, serve)
-    shots.append(end)
+    while len(individual_chars) > 0:
+        current_shot = ""
+        while individual_chars[-1] not in possible_shots:
+            current_shot = individual_chars.pop() + current_shot
+            if not individual_chars:
+                break
+        if individual_chars:
+            if individual_chars[-1] in possible_shots:
+                current_shot = individual_chars.pop() + current_shot
+        shots.insert(0, current_shot)
     return shots
-
 
 def main():
     """
@@ -132,6 +116,16 @@ def main():
 
     if task == "separate_by_player":
         separate_by_player(raw_data_directory + raw_data_file, output_directory)
+    elif task == "read_raw_data":
+        for row in read_raw_data(raw_data_directory + raw_data_file):
+            print(row)
+    elif task == "parse_all_data":
+        for row in read_raw_data(raw_data_directory + raw_data_file):
+            first_serve = row["1st"]
+            second_serve = row["2nd"]
+            print(parse_individual_point(first_serve))
+            if second_serve:
+                print(parse_individual_point(second_serve))
     else:
         print("unknown task:", task)
         usage(1)
