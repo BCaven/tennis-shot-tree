@@ -55,7 +55,7 @@ def read_raw_data(raw_path: str, encoding="utf8") -> dict:
         for row in csv_reader:
             yield row
 
-def parse_individual_point(raw_point: str, possible_shots="fbrsvzopuylmhijktq", types_of_faults="nwdxge!V", let="c", positioning_codes="+-=;^", possible_endings="CSR") -> list:
+def parse_individual_point(raw_point: str, possible_shots="fbrsvzopuylmhijktq") -> list:
     """
         Parses point sentences into a list of individual shots
 
@@ -123,9 +123,21 @@ def main():
         for row in read_raw_data(raw_data_directory + raw_data_file):
             first_serve = row["1st"]
             second_serve = row["2nd"]
-            print(parse_individual_point(first_serve))
+            print(" ".join(parse_individual_point(first_serve)))
             if second_serve:
-                print(parse_individual_point(second_serve))
+                print(" ".join(parse_individual_point(second_serve)))
+    elif task == "print_stats":
+        serving_data = {
+            "total points": 0,
+            "points won": 0,
+        }
+        returning_data = []
+        for row in read_raw_data(raw_data_directory + raw_data_file):
+            if row["Serving"]
+            first_serve = parse_individual_points(row["1st"])
+            second_serve = parse_individual_points(row["2nd"])
+
+
     else:
         print("unknown task:", task)
         usage(1)
