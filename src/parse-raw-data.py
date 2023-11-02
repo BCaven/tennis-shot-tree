@@ -131,11 +131,11 @@ def main():
             "total points": 0,
             "points won": 0,
         }
-        returning_data = []
+        returning_data = {}
         for row in read_raw_data(raw_data_directory + raw_data_file):
-            if row["Serving"]
-            first_serve = parse_individual_points(row["1st"])
-            second_serve = parse_individual_points(row["2nd"])
+            if row["Serving"] not in returning_data:
+                returning_data[row["Serving"]] = {}
+            returning_data[row["Serving"]]
 
 
     else:
