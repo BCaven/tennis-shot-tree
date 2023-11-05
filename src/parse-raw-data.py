@@ -127,6 +127,9 @@ def main():
             if second_serve:
                 print(" ".join(parse_individual_point(second_serve)))
     elif task == "print_stats":
+        # sort points by player
+        # then sort those points by serving vs returning
+        # then put them into probability trees
         serving_data = {
             "total points": 0,
             "points won": 0,
@@ -136,6 +139,7 @@ def main():
             if row["Serving"] not in returning_data:
                 returning_data[row["Serving"]] = {}
             returning_data[row["Serving"]]
+
 
 
     else:
