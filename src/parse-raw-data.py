@@ -7,6 +7,74 @@ import os
 import sys
 import csv
 
+
+ENDINGS = { # True means you just won the point, False means you just lost it
+    False: "nwdxg!V@#", # oh no, you missed :c
+    True: "*" # winners
+}
+
+class Shot:
+    """
+        class that describes each Node of a tree
+        Contains:
+            shot: str
+            probability of being hit: float
+            probability of success: float
+            next shots: list
+            probability that this shot will be a winner/cause an error: float
+    """
+    def __init__(self, shot: str, num_times_hit: int, num_times_success: int, next_shots: list):
+        self.shot = shot
+        self.num_hit = probability_of_hit
+        self.num_success = probability_success
+        self.next_shots = next_shots
+    @classmethod
+    def from_str(cls, raw_shot: str, good_endings="", bad_endings=""):
+        """
+            Build shot object from the raw string
+            Assuming the shot is constructed as such:
+
+        """
+        # really there are just two things we need here: the shot, and the ending
+        # split the shot from the ending, interpret the ending, call it a day
+        # if the shot does not HAVE an ending, it was successful
+        # split the shot
+        ending = raw_shot[-1]
+        if ending in good_endings:
+            # you just won the point
+            pass
+        elif ending in bad_endings:
+            # you just lost the point
+            pass
+        else:
+            # you made the shot, but the point is still going
+            pass
+
+    def add_shot(self, hit: bool):
+        """
+            Another shot of this type was found, change its probability of being hit and probability of success
+        """
+        self.num_hit += 1
+        self.num_success += 1 if hit else 0
+    def update(self, num_times_hit, num_times_success, next_shots):
+        """
+            Update the node
+        """
+        self.num_hit += num_times_hit
+        self.num_success += num_times_success
+        for shot in next_shots:
+            self.add_next_shot(shot)
+    def add_next_shot(self, next_shot):
+        """
+            Add a next_shot
+        """
+        next_shot_indexes = [s.name for s in self.next_shots]
+        if next_shot.shot in next_shot_indexes:
+            index = next_shot_indexes.index(next_shot.shot)
+            self.next_shots[index].update(next_shot.num_hit, next_shot.num_success, next_shot.next_shots)
+        else:
+            self.next_shots.append(next_shot)
+
 def usage(return_val):
     print("""
 Raw Data Parser:
@@ -76,6 +144,26 @@ def parse_individual_point(raw_point: str, possible_shots="fbrsvzopuylmhijktq") 
                 current_shot = individual_chars.pop() + current_shot
         shots.insert(0, current_shot)
     return shots
+def sort_data(raw_data) -> dict:
+    """
+        Organize the data into a dictionary where data is already sorted
+        and put into a tree of Shot objects
+
+        Strategy:
+            going to go through each index, start with serves, go to returns, etc
+
+        Things to keep track of
+            number of shots hit at each level: needed to calculate final percentages
+
+    """
+    for row in raw_data:
+        # sort by player? Or are we assuming that the data is already sorted by player?
+        # Im going to say "screw this, its already sorted"
+        first_serve = parse_individual_point(row["1st"])
+        for shot in first_serve:
+            # go through and put them into the Shot tree
+            pass
+
 
 def main():
     """
@@ -130,11 +218,8 @@ def main():
         # sort points by player
         # then sort those points by serving vs returning
         # then put them into probability trees
-        serving_data = {
-            "total points": 0,
-            "points won": 0,
-        }
-        returning_data = {}
+        data = {}
+
         for row in read_raw_data(raw_data_directory + raw_data_file):
             if row["Serving"] not in returning_data:
                 returning_data[row["Serving"]] = {}
