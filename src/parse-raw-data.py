@@ -102,7 +102,7 @@ class Shot:
         next_shot_indexes = [s.shot for s in self.next_shots]
         if next_shot.shot in next_shot_indexes:
             index = next_shot_indexes.index(next_shot.shot)
-            self.next_shots[index].update(next_shot.num_hit, next_shot.num_success, next_shot.next_shots)
+            self.next_shots[index].update(next_shot)
         else:
             self.next_shots.append(next_shot)
 
@@ -166,6 +166,7 @@ def sort_data(raw_data) -> list[Shot]:
         prev_shot = Shot.from_str(first_serve.pop(0)) # get the first shot in the sequence (the serve)
         if prev_shot.shot not in full_tree_shots: # if the shot is not in the tree, add it to the tree (only starting points are stored in the tree)
             full_tree.append(prev_shot)
+            print("new shot:", prev_shot.shot)
         else:
             # hey, this shot has already happened! add it to that tree node
             hit_index = full_tree_shots.index(prev_shot.shot)
@@ -197,10 +198,10 @@ def main():
     """
         Main function, hooray
     """
-    raw_data_directory = "data/raw/"
-    raw_data_file = "charting-m-points-2010s.csv"
+    raw_data_directory = "data/data-sorted-by-player/"
+    raw_data_file = "Roger_Federer.csv"
     output_directory = "data/data-sorted-by-player/"
-    task = "separate_by_player"
+    task = "create_tree"
     # take command line arguments
     arguments = sys.argv[1:]
     while arguments:
@@ -257,18 +258,12 @@ def main():
         data = sort_data(read_raw_data(raw_data_directory + raw_data_file))
         # going to just print a few levels
         levels = 0
-        current_level = data
-        while levels < 5:
-            chosen = current_level[0]
-            for item in current_level:
-                if item.num_hit > MIN_REQUIRED_SHOTS:
-                    if chosen.num_success / chosen.num_hit < item.num_success / item.num_hit:
-                        chosen = item
-            print(chosen.shot, " ratio: ", chosen.num_success / chosen.num_hit)
-            if chosen.next_shots:
-                current_level = chosen.next_shots
-            else:
-                break # no more shots, so we are done
+        # clean out the things that do not have any next_shots
+        data = [shot for shot in data if shot.next_shots]
+
+        for shot in data:
+            print("serve:", shot.shot)
+            print("return", ",".join(s.shot for s in shot.next_shots))
 
     else:
         print("unknown task:", task)
