@@ -166,7 +166,7 @@ def sort_data(raw_data) -> list[Shot]:
         prev_shot = Shot.from_str(first_serve.pop(0)) # get the first shot in the sequence (the serve)
         if prev_shot.shot not in full_tree_shots: # if the shot is not in the tree, add it to the tree (only starting points are stored in the tree)
             full_tree.append(prev_shot)
-            print("new shot:", prev_shot.shot)
+            #print("new shot:", prev_shot.shot)
         else:
             # hey, this shot has already happened! add it to that tree node
             hit_index = full_tree_shots.index(prev_shot.shot)
@@ -258,12 +258,16 @@ def main():
         data = sort_data(read_raw_data(raw_data_directory + raw_data_file))
         # going to just print a few levels
         levels = 0
-        # clean out the things that do not have any next_shots
-        data = [shot for shot in data if shot.next_shots]
+        # clean out the things that do not have any next_shots or only have one next_shot
+        data = [shot for shot in data if len(shot.next_shots) > 1]
 
         for shot in data:
             print("serve:", shot.shot)
             print("return", ",".join(s.shot for s in shot.next_shots))
+
+        print("After a wide serve:")
+        for r in data[0].next_shots:
+            print("return:", r.shot, " | next shot:", ",".join(s.shot for s in r.next_shots))
 
     else:
         print("unknown task:", task)
