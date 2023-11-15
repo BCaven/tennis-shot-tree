@@ -52,6 +52,7 @@ class Shot:
         self.num_hit = num_times_hit
         self.num_success = num_times_success
         self.next_shots = next_shots
+        self.priority = 1
     @classmethod
     def from_str(cls, raw_shot: str, good_endings="*", bad_endings="nwdxg!V@#"):
         """
@@ -101,8 +102,9 @@ class Shot:
         """
         next_shot_indexes = [s.shot for s in self.next_shots]
         if next_shot.shot in next_shot_indexes:
+            #print("this shot is already in the list of next_shots, updating...")
             index = next_shot_indexes.index(next_shot.shot)
-            self.next_shots[index].update(next_shot)
+            self.next_shots[index] = self.next_shots[index].update(next_shot)
         else:
             self.next_shots.append(next_shot)
 
@@ -158,6 +160,7 @@ def sort_data(raw_data) -> list[Shot]:
         Each Shot object in the list is the head of a Shot Tree
         This list should in theory only contain serves (represented by the numbers 4, 5, 6, and 0)
     """
+    # TODO: make this add every shot to the tree
     full_tree = []
     for row in raw_data:
         # assuming we are only getting data that we want
@@ -169,6 +172,7 @@ def sort_data(raw_data) -> list[Shot]:
             #print("new shot:", prev_shot.shot)
         else:
             # hey, this shot has already happened! add it to that tree node
+            #print("this shot has already happened!")
             hit_index = full_tree_shots.index(prev_shot.shot)
             prev_shot = full_tree[hit_index].update(prev_shot)
 
@@ -261,9 +265,9 @@ def main():
         # clean out the things that do not have any next_shots or only have one next_shot
         data = [shot for shot in data if len(shot.next_shots) > 1]
 
-        for shot in data:
-            print("serve:", shot.shot)
-            print("return", ",".join(s.shot for s in shot.next_shots))
+        #for shot in data:
+        #    print("serve:", shot.shot)
+        #    print("return", ",".join(s.shot for s in shot.next_shots))
 
         print("After a wide serve:")
         for r in data[0].next_shots:
