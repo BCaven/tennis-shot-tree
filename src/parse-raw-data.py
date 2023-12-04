@@ -6,7 +6,7 @@ These arrays will have to be converted into trees (so each possible next shot ca
 import os
 import sys
 import csv
-
+from tree import Shot, sort_data, parse_individual_point
 
 ENDINGS = { # True means you just won the point, False means you just lost it
     False: "nwdxg!V@#", # oh no, you missed :c
@@ -37,76 +37,6 @@ Raw Data Parser:
     """)
     sys.exit(return_val)
 
-class Shot:
-    """
-        class that describes each Node of a tree
-        Contains:
-            shot: str
-            probability of being hit: float
-            probability of success: float
-            next shots: list
-            probability that this shot will be a winner/cause an error: float
-    """
-    def __init__(self, shot: str, num_times_hit: int, num_times_success: int, next_shots: list):
-        self.shot = shot
-        self.num_hit = num_times_hit
-        self.num_success = num_times_success
-        self.next_shots = next_shots
-        self.priority = 1
-    @classmethod
-    def from_str(cls, raw_shot: str, good_endings="*", bad_endings="nwdxg!V@#"):
-        """
-            Build shot object from the raw string
-            Assuming the shot is constructed as such:
-
-        """
-        # really there are just two things we need here: the shot, and the ending
-        # split the shot from the ending, interpret the ending, call it a day
-        # if the shot does not HAVE an ending, it was successful
-        # split the shot
-        ending = raw_shot[-1]
-        cleaned_shot = raw_shot.strip(good_endings + bad_endings)
-        if ending in good_endings:
-            # you just won the point
-            return cls(cleaned_shot, 1, 1, [])
-            pass
-        elif ending in bad_endings:
-            # you just lost the point
-            return cls(cleaned_shot, 1, 0, [])
-        else:
-            # you made the shot, but the point is still going
-            return cls(cleaned_shot, 1, 1, [])
-
-    def add_shot(self, hit: bool):
-        """
-            Another shot of this type was found, change its probability of being hit and probability of success
-
-            I do not think this method is going to be used
-            TODO: confirm deletion of this method (and remove it)
-        """
-        self.num_hit += 1
-        self.num_success += 1 if hit else 0
-    def update(self, shot):
-        """
-            Combine this node's data with another node's data
-            returns itself (a.k.a. the updated node)
-        """
-        self.num_hit += shot.num_hit
-        self.num_success += shot.num_success
-        for shot in shot.next_shots:
-            self.add_next_shot(shot)
-        return self
-    def add_next_shot(self, next_shot):
-        """
-            Add a next_shot
-        """
-        next_shot_indexes = [s.shot for s in self.next_shots]
-        if next_shot.shot in next_shot_indexes:
-            #print("this shot is already in the list of next_shots, updating...")
-            index = next_shot_indexes.index(next_shot.shot)
-            self.next_shots[index] = self.next_shots[index].update(next_shot)
-        else:
-            self.next_shots.append(next_shot)
 
 def separate_by_player(raw_path: str, output_dir: str, input_encoding='windows-1252', output_encoding='utf8'):
     """
@@ -133,69 +63,16 @@ def read_raw_data(raw_path: str, encoding="utf8") -> dict:
         for row in csv_reader:
             yield row
 
-def parse_individual_point(raw_point: str, possible_shots="fbrsvzopuylmhijktq") -> list:
+def get_point_data(raw_data, allowed_openings="567cS"):
     """
-        Parses point sentences into a list of individual shots
-
-        RULES:
-            Look at the "Instructions" section of MatchChart.xlsm
+    returns just the point data
     """
-    # going to build shots backwards, start at the end and go to the beginning
-    individual_chars = [c for c in raw_point]
-    shots = []
-    while len(individual_chars) > 0:
-        current_shot = ""
-        while individual_chars[-1] not in possible_shots:
-            current_shot = individual_chars.pop() + current_shot
-            if not individual_chars:
-                break
-        if individual_chars:
-            if individual_chars[-1] in possible_shots:
-                current_shot = individual_chars.pop() + current_shot
-        shots.insert(0, current_shot)
-    return shots
-def sort_data(raw_data) -> list[Shot]:
-    """
-        Organize the data into a list of Shot objects
-        Each Shot object in the list is the head of a Shot Tree
-        This list should in theory only contain serves (represented by the numbers 4, 5, 6, and 0)
-    """
-    # TODO: make this add every shot to the tree
-    full_tree = []
-    for row in raw_data:
-        # assuming we are only getting data that we want
-        full_tree_shots = [s.shot for s in full_tree]
-        first_serve = parse_individual_point(row["1st"])
-        prev_shot = Shot.from_str(first_serve.pop(0)) # get the first shot in the sequence (the serve)
-        if prev_shot.shot not in full_tree_shots: # if the shot is not in the tree, add it to the tree (only starting points are stored in the tree)
-            full_tree.append(prev_shot)
-            #print("new shot:", prev_shot.shot)
-        else:
-            # hey, this shot has already happened! add it to that tree node
-            #print("this shot has already happened!")
-            hit_index = full_tree_shots.index(prev_shot.shot)
-            prev_shot = full_tree[hit_index].update(prev_shot)
-
-        for shot in first_serve: # for the rest of them
-            # go through and put them into the Shot tree
-            current_shot = Shot.from_str(shot)
-            prev_shot.add_next_shot(current_shot)
-            prev_shot = current_shot
-
-        # and repeat for the second serve
-        second_serve = parse_individual_point(row["1st"])
-        prev_shot = Shot.from_str(second_serve.pop(0)) # get the second shot in the sequence (the serve)
-        if prev_shot.shot not in full_tree_shots:
-            full_tree.append(prev_shot)
-        else:
-            hit_index = full_tree_shots.index(prev_shot.shot)
-            prev_shot = full_tree[hit_index].update(prev_shot)
-        for shot in second_serve:
-            current_shot = Shot.from_str(shot)
-            prev_shot.add_next_shot(current_shot)
-            prev_shot = current_shot
-    # return the tree
-    return full_tree
+    raw = read_raw_data(raw_data)
+    points = []
+    for row in raw:
+        points.append(row["1st"])
+        points.append(row["2nd"])
+    return points
 
 
 def main():
@@ -247,31 +124,16 @@ def main():
             print(" ".join(parse_individual_point(first_serve)))
             if second_serve:
                 print(" ".join(parse_individual_point(second_serve)))
-    elif task == "print_stats":
-        # sort points by player
-        # then sort those points by serving vs returning
-        # then put them into probability trees
-        data = {}
-
-        for row in read_raw_data(raw_data_directory + raw_data_file):
-            if row["Serving"] not in returning_data:
-                returning_data[row["Serving"]] = {}
-            returning_data[row["Serving"]]
+    
     elif task == "create_tree":
         # assuming the data directory and data file have been specified
-        data = sort_data(read_raw_data(raw_data_directory + raw_data_file))
-        # going to just print a few levels
-        levels = 0
+        data = sort_data(get_point_data(raw_data_directory + raw_data_file))
         # clean out the things that do not have any next_shots or only have one next_shot
-        data = [shot for shot in data if len(shot.next_shots) > 1]
-
-        #for shot in data:
-        #    print("serve:", shot.shot)
-        #    print("return", ",".join(s.shot for s in shot.next_shots))
-
-        print("After a wide serve:")
-        for r in data[0].next_shots:
-            print("return:", r.shot, " | next shot:", ",".join(s.shot for s in r.next_shots))
+        print(data.shot)
+        print("serves")
+        print(",".join([s.shot for s in data.next_shots]))
+        print("returns for first serve in list:")
+        print(",".join([s.shot for s in data.next_shots[0].next_shots]))
 
     else:
         print("unknown task:", task)
