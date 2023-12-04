@@ -13,7 +13,8 @@ ENDINGS = { # True means you just won the point, False means you just lost it
     True: "*" # winners
 }
 MIN_REQUIRED_SHOTS = 5 # the cutoff for items in the tree, if there are fewer than this many of that shot, it will be ignored
-
+RESTRICTED_SEARCH = True
+MAX_OPTIONS = 5
 def usage(return_val):
     print("""
 Raw Data Parser:
@@ -130,11 +131,30 @@ def main():
         data = sort_data(get_point_data(raw_data_directory + raw_data_file))
         # clean out the things that do not have any next_shots or only have one next_shot
         print(data.shot)
-        print("serves")
-        print(",".join([s.shot for s in data.next_shots]))
-        print("returns for first serve in list:")
-        print(",".join([s.shot for s in data.next_shots[0].next_shots]))
-
+        done = False
+        selected = data
+        while not done:
+            # allow the user to traverse the tree
+            if not selected.next_shots:
+                done = True
+                break
+            print("Possible next shots:")
+            num_shown = 0
+            for shot in selected.next_shots:
+                if num_shown > MAX_OPTIONS:
+                    break
+                if shot.num_hit > MIN_REQUIRED_SHOTS or not RESTRICTED_SEARCH:
+                    print(f'{shot.shot}\tnumber of times hit: {shot.num_hit: 10.2f} | chance the point continues:{shot.continue_prob: 6.2f} | chance of winner:{shot.winner_prob: 6.2f} | chance of mistake:{shot.error_prob: 6.2f}')
+                    num_shown+=1
+            choice = input("Please chose a shot from the list of shots ('Q' to quit): ")
+            if choice == 'Q':
+                done = True
+                break
+            try:
+                index = [s.shot for s in selected.next_shots].index(choice)
+                selected = selected.next_shots[index]
+            except ValueError:
+                print("sorry that option was not found")
     else:
         print("unknown task:", task)
         usage(1)

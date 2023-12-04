@@ -8,11 +8,15 @@ class Shot:
             next shots: list
             probability that this shot will be a winner/cause an error: float
     """
-    def __init__(self, shot: str, num_times_hit: int, num_times_success: int, next_shots: list):
+    def __init__(self, shot: str, num_times_hit: int, num_times_success: int, next_shots: list, outcomes: dict={}):
         self.shot = shot
         self.num_hit = num_times_hit
         self.num_success = num_times_success
         self.next_shots = next_shots
+        self.outcomes = outcomes
+        self.continue_prob = 0
+        self.winner_prob = 0
+        self.error_prob = 0
     @classmethod
     def from_str(cls, raw_shot: str, good_endings="*", bad_endings="nwdxg!V@#"):
         """
@@ -25,28 +29,19 @@ class Shot:
         # if the shot does not HAVE an ending, it was successful
         # split the shot
         ending = raw_shot[-1]
-        cleaned_shot = raw_shot #.strip(good_endings + bad_endings)
-        if ending in good_endings:
-            # you just won the point
-            return cls(cleaned_shot, 1, 1, [])
-            pass
-        elif ending in bad_endings:
+        cleaned_shot = raw_shot.strip(good_endings + bad_endings)
+        suffix = "".join([c if c in good_endings+bad_endings else "" for c in raw_shot])
+        if not suffix:
+            suffix = "continue"
+        if ending in bad_endings:
             # you just lost the point
-            return cls(cleaned_shot, 1, 0, [])
+            return cls(cleaned_shot, 1, 0, [], {suffix: 1})
         else:
             # you made the shot, but the point is still going
-            return cls(cleaned_shot, 1, 1, [])
+            # or you just won the point
+            return cls(cleaned_shot, 1, 1, [], {suffix: 1})
 
-    def add_shot(self, hit: bool):
-        """
-            Another shot of this type was found, change its probability of being hit and probability of success
-
-            I do not think this method is going to be used
-            TODO: confirm deletion of this method (and remove it)
-        """
-        self.num_hit += 1
-        self.num_success += 1 if hit else 0
-    def update(self, shot):
+    def update(self, shot, sort=True):
         """
             Combine this node's data with another node's data
             returns itself (a.k.a. the updated node)
@@ -55,6 +50,28 @@ class Shot:
         self.num_success += shot.num_success
         for shot in shot.next_shots:
             self.add_next_shot(shot)
+        for outcome in shot.outcomes:
+            try:
+                self.outcomes[outcome] += shot.outcomes[outcome]
+            except:
+                self.outcomes[outcome] = shot.outcomes[outcome]
+        # sort the next_shots
+        if sort:
+            self.next_shots.sort(key=lambda x: x.num_hit, reverse=True)
+        
+        # update probabilities
+        try:
+            self.continue_prob = self.outcomes['continue'] / self.num_hit
+        except Exception:
+            self.continue_prob = 0
+        try:
+            self.winner_prob = self.outcomes['*'] / self.num_hit
+        except Exception:
+            self.winner_prob = 0
+        try:
+            self.error_prob = (self.num_hit - self.num_success) / self.num_hit
+        except Exception:
+            self.error_prob = 0
         return self
     def add_next_shot(self, next_shot):
         """
@@ -76,19 +93,18 @@ class Shot:
         """
         if not shots:
             return
-        next_shot = shots.pop(0)
+        next_shot = Shot.from_str(shots.pop(0))
         try:
             # the next shot is already one of the next shots
-            index = [s.shot for s in self.next_shots].index(next_shot)
+            index = [s.shot for s in self.next_shots].index(next_shot.shot)
             #print("shot", next_shot, "found at index", index)
-            new_shot = self.next_shots[index].update(Shot.from_str(next_shot))
+            new_shot = self.next_shots[index].update(next_shot)
             new_shot.add_point(shots)
         except ValueError:
             # the next shot is new, it has not been seen here before
             #print("shot", next_shot, "has not been seen before")
-            new_shot = Shot.from_str(next_shot)
-            self.next_shots.append(new_shot)
-            new_shot.add_point(shots)
+            self.next_shots.append(next_shot)
+            next_shot.add_point(shots)
 
 
 
