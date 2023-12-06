@@ -20,9 +20,10 @@ def usage(return_val):
 Raw Data Parser:
     USAGE: python3 parse-raw-data.py [FLAGS] [OPTIONS]
     -d DIRECTORY: directory of raw data
-    -f FILE: specific file to parse
+    -f FILE: file to parse
     -o DIRECTORY: directory to place output data in
-    -t TASK: specify what the parser should do
+    -t TASK: what the parser should do
+    -e ENCODING: encoding of the file being read in
     -h: print out this message
 
     DEFAULTS:
@@ -64,11 +65,11 @@ def read_raw_data(raw_path: str, encoding="utf8") -> dict:
         for row in csv_reader:
             yield row
 
-def get_point_data(raw_data, allowed_openings="567cS"):
+def get_point_data(raw_data, encoding="utf8"):
     """
     returns just the point data
     """
-    raw = read_raw_data(raw_data)
+    raw = read_raw_data(raw_data, encoding=encoding)
     points = []
     for row in raw:
         points.append(row["1st"])
@@ -84,6 +85,7 @@ def main():
     raw_data_file = "Roger_Federer.csv"
     output_directory = "data/data-sorted-by-player/"
     task = "create_tree"
+    encoding = "utf8"
     # take command line arguments
     arguments = sys.argv[1:]
     while arguments:
@@ -110,16 +112,21 @@ def main():
                 task = arguments.pop(0)
             except:
                 usage(1)
+        elif current_arg == '-e':
+            try:
+                encoding  = arguments.pop(0)
+            except:
+                usage(1)
         else:
             usage(1)
 
     if task == "separate_by_player":
-        separate_by_player(raw_data_directory + raw_data_file, output_directory)
+        separate_by_player(raw_data_directory + raw_data_file, output_directory, encoding=encoding)
     elif task == "read_raw_data":
-        for row in read_raw_data(raw_data_directory + raw_data_file):
+        for row in read_raw_data(raw_data_directory + raw_data_file, encoding=encoding):
             print(row)
     elif task == "parse_all_data":
-        for row in read_raw_data(raw_data_directory + raw_data_file):
+        for row in read_raw_data(raw_data_directory + raw_data_file, encoding=encoding):
             first_serve = row["1st"]
             second_serve = row["2nd"]
             print(" ".join(parse_individual_point(first_serve)))
@@ -128,7 +135,7 @@ def main():
     
     elif task == "create_tree":
         # assuming the data directory and data file have been specified
-        data = sort_data(get_point_data(raw_data_directory + raw_data_file))
+        data = sort_data(get_point_data(raw_data_directory + raw_data_file, encoding=encoding))
         # clean out the things that do not have any next_shots or only have one next_shot
         print(data.shot)
         done = False
@@ -141,7 +148,7 @@ def main():
             print("Possible next shots:")
             num_shown = 0
             for shot in selected.next_shots:
-                if num_shown > MAX_OPTIONS:
+                if num_shown >= MAX_OPTIONS:
                     break
                 if shot.num_hit > MIN_REQUIRED_SHOTS or not RESTRICTED_SEARCH:
                     print(f'{shot.shot}\tnumber of times hit: {shot.num_hit: 10.2f} | chance the point continues:{shot.continue_prob: 6.2f} | chance of winner:{shot.winner_prob: 6.2f} | chance of mistake:{shot.error_prob: 6.2f}')
