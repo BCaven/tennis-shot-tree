@@ -23,6 +23,7 @@ Raw Data Parser:
     -o DIRECTORY        : directory to place output data in
     -t TASK             : what the parser should do
     -e ENCODING         : encoding of the file being read in
+    -eo ENCODING        : encoding of the output file
     -h                  : print out this message
 
     DEFAULTS:
@@ -88,42 +89,37 @@ def main():
     output_directory = "data/data-sorted-by-player/"
     task = "create_tree"
     encoding = "utf8"
+    output_encoding = "utf8"
     # take command line arguments
     arguments = sys.argv[1:]
-    while arguments:
-        current_arg = arguments.pop(0)
-        if current_arg == '-h':
-            usage(0)
-        elif current_arg == '-d':
-            try:
+    try:
+        while arguments:
+            current_arg = arguments.pop(0)
+            if current_arg == '-h':
+                usage(0)
+            elif current_arg == '-d':
                 raw_data_directory = arguments.pop(0)
-            except:
-                usage(1)
-        elif current_arg == '-f':
-            try:
+            elif current_arg == '-f':
                 raw_data_file = arguments.pop(0)
-            except:
-                usage(1)
-        elif current_arg == '-o':
-            try:
+            elif current_arg == '-o':
                 output_directory = arguments.pop(0)
-            except:
-                usage(1)
-        elif current_arg == '-t':
-            try:
+            elif current_arg == '-t':
                 task = arguments.pop(0)
-            except:
-                usage(1)
-        elif current_arg == '-e':
-            try:
+            elif current_arg == '-e':
                 encoding  = arguments.pop(0)
-            except:
+            elif current_arg == '-eo':
+                output_encoding = arguments.pop(0)
+            else:
                 usage(1)
-        else:
-            usage(1)
+    except Exception:
+        usage(1)
 
     if task == "separate_by_player":
-        separate_by_player(raw_data_directory + raw_data_file, output_directory, encoding=encoding)
+        separate_by_player(
+            raw_data_directory + raw_data_file, 
+            output_directory, 
+            encoding=encoding,
+            output_encoding=output_encoding)
     elif task == "read_raw_data":
         for row in read_raw_data(raw_data_directory + raw_data_file, encoding=encoding):
             print(row)
@@ -136,7 +132,9 @@ def main():
                 print(" ".join(parse_individual_point(second_serve)))
     
     elif task == "create_tree":
-        data = sort_data(get_point_data(raw_data_directory + raw_data_file, encoding=encoding))
+        data = sort_data(
+            get_point_data(raw_data_directory + raw_data_file, encoding=encoding)
+            )
         print(data.shot)
         done = False
         selected = data
