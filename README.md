@@ -2,7 +2,8 @@
 
     Blake Caven
 
-Prediction algorithm that determines next best shot based on current rally
+Prediction algorithm that determines next best shot based on current rally.
+
 The repo: https://github.com/BCaven/tennis-shot-tree
 
 # training data:
@@ -47,8 +48,9 @@ More detail can be found by running `./tennis-shot-tree --help` and an example c
 
 # original project proposal:
 
-    So far, most of the work on this project has been thinking about how to use the data that has been collected. Tennis is a complex sport, and unlike a game like Chess, a simple decision tree is unlikely to yield satisfactory results. Due to this, it is tempting to make many assumptions about the player’s ability - primarily, assuming that the player is able to perfectly execute the shot being recommended to them. So, obviously, this is not realistic because every player (even professional players) often make mistakes. Instead I am going to try to model the algorithm around this, so the recommended best shot is not a general thing, but is instead what is recommended for the current player. For example, if the player has not made any backhands so far in the match, the algorithm should not recommend that they only hit backhands.
-    The dataset being used for this project is very detailed (it can be found here: https://github.com/JeffSackmann/tennis_MatchChartingProject) and I have written a program to parse the data into more manageable chunks. This data will be first compiled into general statistics about the matches recorded, and will likely be split into separate categories based on playstyles and court surfaces (what works on a grass court might not work on a hard court). I am hoping that this data can be used to create algorithms to generate the “best next shot” for each surface and playstyle and once these smaller algorithms have been created, they can either be combined into one larger algorithm, or I can write a broader algorithm that picks which of the smaller algorithms to use. Once written, I will train the models on the dataset collected and test the models on a combination of current matches and old matches that are not included in the dataset.
+So far, most of the work on this project has been thinking about how to use the data that has been collected. Tennis is a complex sport, and unlike a game like Chess, a simple decision tree is unlikely to yield satisfactory results. Due to this, it is tempting to make many assumptions about the player’s ability - primarily, assuming that the player is able to perfectly execute the shot being recommended to them. So, obviously, this is not realistic because every player (even professional players) often make mistakes. Instead I am going to try to model the algorithm around this, so the recommended best shot is not a general thing, but is instead what is recommended for the current player. For example, if the player has not made any backhands so far in the match, the algorithm should not recommend that they only hit backhands.
+
+The dataset being used for this project is very detailed (it can be found here: https://github.com/JeffSackmann/tennis_MatchChartingProject) and I have written a program to parse the data into more manageable chunks. This data will be first compiled into general statistics about the matches recorded, and will likely be split into separate categories based on playstyles and court surfaces (what works on a grass court might not work on a hard court). I am hoping that this data can be used to create algorithms to generate the “best next shot” for each surface and playstyle and once these smaller algorithms have been created, they can either be combined into one larger algorithm, or I can write a broader algorithm that picks which of the smaller algorithms to use. Once written, I will train the models on the dataset collected and test the models on a combination of current matches and old matches that are not included in the dataset.
 
 # pivots that were made:
 
