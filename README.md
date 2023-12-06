@@ -1,7 +1,9 @@
 # tennis-shot-tree
 
     Blake Caven
+
 Prediction algorithm that determines next best shot based on current rally
+The repo: https://github.com/BCaven/tennis-shot-tree
 
 # training data:
 https://github.com/JeffSackmann/tennis_MatchChartingProject
