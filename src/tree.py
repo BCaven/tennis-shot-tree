@@ -49,7 +49,7 @@ Shot class:
         sys.exit(return_val)
 
     @classmethod
-    def from_str(cls, raw_shot: str, good_endings="*789", bad_endings="nwdxg!V@#"):
+    def from_str(cls, raw_shot: str, good_endings="*789", bad_endings="nwdxg!V@#Ce", prefix='c'):
         """
             Build shot object from the raw string
             Assuming the shot is constructed as such:
@@ -59,8 +59,12 @@ Shot class:
         # split the shot from the ending, interpret the ending, call it a day
         # if the shot does not HAVE an ending, it was successful
         # split the shot
+        
         ending = raw_shot[-1]
         cleaned_shot = raw_shot.strip(good_endings + bad_endings)
+        # remove lets c5 -> 5
+        for c in prefix:
+            cleaned_shot = cleaned_shot.lstrip(c)
         suffix = "".join([c if c in good_endings+bad_endings else "" for c in raw_shot])
         if not suffix:
             suffix = "continue"
@@ -90,7 +94,6 @@ Shot class:
                   sorting functions
         """
         self.num_hit += shot.num_hit
-        self.num_success += shot.num_success
         for shot in shot.next_shots:
             self.add_next_shot(shot)
         for outcome in shot.outcomes:
@@ -107,21 +110,38 @@ Shot class:
             self.next_shots.sort(key=lambda x: x.num_hit, reverse=True)
         
         # update probabilities
+        self.num_success = 0
         try:
+            continue_sum = 0
             for c in rally_continues:
                 if c in self.outcomes:
-                    self.continue_prob += self.outcomes[c]
-            self.continue_prob /= self.num_hit
+                    continue_sum += self.outcomes[c]
+            self.continue_prob = continue_sum / self.num_hit
+            self.num_success += continue_sum
         except Exception:
             self.continue_prob = 0
         try:
-            self.winner_prob = self.outcomes['*'] / self.num_hit
+            winner_sum = 0
+            for key in self.outcomes:
+                if '*' in key:
+                    winner_sum += self.outcomes[key]
+            self.winner_prob = winner_sum / self.num_hit
+            self.num_success += winner_sum
         except Exception:
             self.winner_prob = 0
         try:
-            self.error_prob = (self.num_hit - self.num_success) / self.num_hit
+            error_sum = 0
+            for key in self.outcomes:
+                if (key not in rally_continues) and ('*' not in key):
+                    error_sum += self.outcomes[key]
+            self.error_prob = error_sum / self.num_hit
         except Exception:
             self.error_prob = 0
+        
+        num_outcomes = sum(self.outcomes[s] for s in self.outcomes)
+        assert self.num_hit == num_outcomes, "number of times hit does not equal the total number of outcomes seen"
+        prob_sum = round(self.continue_prob + self.winner_prob + self.error_prob, 5)
+        assert prob_sum == 1, "percentages do not equal the correct value"
         return self
     def add_next_shot(self, next_shot, sort=True):
         """
@@ -134,7 +154,7 @@ Shot class:
         else:
             self.next_shots.append(next_shot)
     
-    def add_point(self, shots: list):
+    def add_point(self, shots: list, ignored_points="SRPQ0"):
         """
             Parameter: list describing a point
 
@@ -143,7 +163,13 @@ Shot class:
         """
         if not shots:
             return
-        next_shot = Shot.from_str(shots.pop(0))
+        raw_next = shots.pop(0).replace(" ", "") # remove spaces
+        #raw_next = raw_next.replace("c", "") # remove lets
+        if not raw_next:
+            return
+        next_shot = Shot.from_str(raw_next)
+        if next_shot.shot in ignored_points:
+            return
         try:
             # the next shot is already one of the next shots
             index = [s.shot for s in self.next_shots].index(next_shot.shot)
@@ -181,7 +207,7 @@ def parse_individual_point(raw_point: str, possible_shots="fbrsvzopuylmhijktq") 
         shots.insert(0, current_shot)
     return shots
 
-def sort_data(raw_data) -> Shot:
+def sort_data(raw_data, valid_starts="456") -> Shot:
     """
         Shot tree starts with a placeholder "start" node
         Each possible serve is contained in head.next_shots
@@ -189,5 +215,12 @@ def sort_data(raw_data) -> Shot:
     """
     tree_head = Shot("Start", 1, 1, [])
     for point in raw_data:
-        tree_head.add_point(parse_individual_point(point))
+        individual_points = parse_individual_point(point)
+        if not individual_points:
+            continue
+        if any(c in valid_starts for c in individual_points[0]): # ignoring all points that do not
+                                                                 # start with a serve
+                                                                 # done primarily to avoid incorrect
+                                                                 # optimizations in minmax algorithms
+            tree_head.add_point(individual_points)
     return tree_head

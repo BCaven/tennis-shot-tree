@@ -50,8 +50,6 @@ Tennis Shot Tree
           
           NOTE:
             For some reason, the match-charting-project encoded their files in windows-1252
-            
-
 
 """)
     sys.exit(return_val)
@@ -81,14 +79,18 @@ def main():
             elif current_arg == '-max':
                 if arguments[0] == '-o':
                     _ = arguments.pop(0)
+                    print("adding max_opponent_stat to list of algs")
                     algs.append(max_opponent_stat)
                 else:
+                    print("adding max_stat to list of algs")
                     algs.append(max_stat)
             elif current_arg == '-min':
                 if arguments[0] == '-o':
                     _ = arguments.pop(0)
+                    print("adding min_opponent_stat to list of algs")
                     algs.append(min_opponent_stat)
                 else:
+                    print("adding min_stat to list of algs")
                     algs.append(min_stat)
             elif current_arg == '-stat':
                 stats.append(arguments.pop(0))
@@ -98,13 +100,17 @@ def main():
                 tree_path = arguments.pop(0)
             elif current_arg == '-e':
                 encoding = arguments.pop(0)
+            else:
+                usage(1)
             
-    except Exception:
+    except Exception as e:
+        print(e)
         usage(1)
     
     # build tree
+    print("building search tree from", tree_path)
     search_tree = sort_data(get_point_data(tree_path, encoding=encoding))
-
+    print("done")
     if humans == 1:
         if len(algs) >= 1 and len(stats) >= 1:
             human_vs_alg(search_tree, algs[0], stats[0], max_score)

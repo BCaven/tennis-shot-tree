@@ -17,7 +17,7 @@ from tree import Shot
 from random import randint
 
 MIN_REQUIRED_SHOTS = 5 # the cutoff for items in the tree, if there are fewer than this many of that shot, it will be ignored
-RESTRICTED_SEARCH = True
+RESTRICTED_SEARCH = False
 MAX_OPTIONS = 5
 RAND_VAL_RESOLUTION = 1000
 
@@ -26,9 +26,13 @@ def max_stat(stat: str, shot: Shot, head: Shot) -> Shot:
         Maximize the desired stat
     
     """
-    if not shot.next_shots:
+    if len(shot.next_shots) < MIN_REQUIRED_SHOTS:
         shot = breadth_first_search(shot.shot, head)
-
+        if shot == head:
+            print("The BFS failed to find a shot of that type")
+            return head
+        else:
+            print("The BFS has found an equivalent node")
 
     next_shot = shot.next_shots[0]
     max = next_shot.get_stat(stat)
@@ -42,8 +46,13 @@ def min_stat(stat: str, shot: Shot, head: Shot) -> Shot:
     """
         Minimize the desired stat
     """
-    if not shot.next_shots:
+    if len(shot.next_shots) < MIN_REQUIRED_SHOTS:
         shot = breadth_first_search(shot.shot, head)
+        if shot == head:
+            print("The BFS failed to find a shot of that type")
+            return head
+        else:
+            print("The BFS has found an equivalent node")
 
     next_shot = shot.next_shots[0]
     min = next_shot.get_stat(stat)
@@ -102,6 +111,7 @@ def breadth_first_search(shot:str, tree: Shot) -> Shot:
             if next.next_shots: # if the next shot is not the end of the tree, 
                                 # add it to the list of nodes to be expanded
                 search_list.append(next)
+    print("BFS failed to find shot of type:", shot)
     return tree # if we couldnt find one, just return the head of the tree
                 # this should never happen
 
@@ -113,20 +123,24 @@ def human_vs_human(search_tree: Shot, max_score: int=10):
     score = (0, 0) # tuple containing the score of the players
                    # NOTE: in "real" tennis, the score is structured in points, games, and sets
                    #       however, to simplify, I am going to use 10-point tie-break scoring
-    server = 1 * (-1 * randint(0, 1)) # 1 is p1, -1 is p2, randomized who starts serving
+    server = 1 if randint(0, 1) == 0 else -1 # 1 is p1, -1 is p2, randomized who starts serving
 
     while score[0] < max_score and score[1] < max_score:
         p1_score, p2_score = score
+        print("Score: ", p1_score, "-", p2_score)
+        print("Server: Player", 1 if server > 0 else 2)
         point_finished = False
         next = server
         current_shot = search_tree
         while not point_finished: # point
-            print("Player", 1 if next > 0 else 2, "'s turn:", sep="")
-            if not current_shot.next_shots:
+            print("Player ", 1 if next > 0 else 2, "'s turn:", sep="")
+            if len(current_shot.next_shots) < MIN_REQUIRED_SHOTS:
                 current_shot = breadth_first_search(current_shot.shot, search_tree)
-            if current_shot == search_tree:
-                print("The BFS failed to find a shot of that type")
-            print("\nOptions:")
+                if current_shot == search_tree:
+                    print("The BFS failed to find a shot of that type")
+                else:
+                    print("The BFS has found an equivalent node")
+            print("Options:")
             num_shown = 0
             for shot in current_shot.next_shots:
                 if num_shown >= MAX_OPTIONS:
@@ -140,6 +154,7 @@ def human_vs_human(search_tree: Shot, max_score: int=10):
                 current_shot = current_shot.next_shots[shot_index]
             except ValueError:
                 print("sorry that option was not found")
+                continue
             
             # now check if the shot succeeded
             chance_of_making_the_shot = randint(0, RAND_VAL_RESOLUTION) / RAND_VAL_RESOLUTION
@@ -206,20 +221,24 @@ def human_vs_alg(search_tree: Shot, algorithm, stat: str="continue_prob", max_sc
     score = (0, 0) # tuple containing the score of the players
                    # NOTE: in "real" tennis, the score is structured in points, games, and sets
                    #       however, to simplify, I am going to use 10-point tie-break scoring
-    server = 1 * (-1 * randint(0, 1)) # 1 is p1, -1 is p2, randomized who starts serving
+    server = 1 if randint(0, 1) == 0 else -1 # 1 is p1, -1 is p2, randomized who starts serving
 
     while score[0] < max_score and score[1] < max_score:
         p1_score, p2_score = score
+        print("Current score: ", p1_score, "-", p2_score)
         point_finished = False
         next = server
         current_shot = search_tree
         while not point_finished: # point
             if next == 1: # human picks shot
-                if not current_shot.next_shots:
+                print("Player ", 1 if next > 0 else 2, "'s turn:", sep="")
+                if len(current_shot.next_shots) < MIN_REQUIRED_SHOTS:
                     current_shot = breadth_first_search(current_shot.shot, search_tree)
-                if current_shot == search_tree:
-                    print("The BFS failed to find a shot of that type")
-                print("\nOptions:")
+                    if current_shot == search_tree:
+                        print("The BFS failed to find a shot of that type")
+                    else:
+                        print("The BFS has found an equivalent node")
+                print("Options:")
                 num_shown = 0
                 for shot in current_shot.next_shots:
                     if num_shown >= MAX_OPTIONS:
@@ -233,10 +252,13 @@ def human_vs_alg(search_tree: Shot, algorithm, stat: str="continue_prob", max_sc
                     current_shot = current_shot.next_shots[shot_index]
                 except ValueError:
                     print("sorry that option was not found")
+                    continue
             elif next == -1: # alg picks shot
                 current_shot = algorithm(stat, current_shot, search_tree)
                 if current_shot == search_tree:
                     print("The BFS failed to find a shot of that type...")
+                else:
+                    print("alg hit:", current_shot.shot)
             else:
                 print("oh no, something went wrong")
             
@@ -279,7 +301,7 @@ def human_vs_alg(search_tree: Shot, algorithm, stat: str="continue_prob", max_sc
         print("Player 2 wins!")
 
 # TODO: write alg-vs-alg function
-def alg_vs_alg(search_tree: Shot, algorithms: list[function, function], stat: list[str, str]=["continue_prob", "continue_prob"], max_score: int=10):
+def alg_vs_alg(search_tree: Shot, algorithms: list, stat: list[str, str]=["continue_prob", "continue_prob"], max_score: int=10):
     """
         TODO: rework how algorithms are passed to this function
 
@@ -289,7 +311,7 @@ def alg_vs_alg(search_tree: Shot, algorithms: list[function, function], stat: li
     score = (0, 0) # tuple containing the score of the players
                    # NOTE: in "real" tennis, the score is structured in points, games, and sets
                    #       however, to simplify, I am going to use 10-point tie-break scoring
-    server = 1 * (-1 * randint(0, 1)) # 1 is p1, -1 is p2, randomized who starts serving
+    server = 1 if randint(0, 1) == 0 else -1 # 1 is p1, -1 is p2, randomized who starts serving
 
     while score[0] < max_score and score[1] < max_score:
         p1_score, p2_score = score
