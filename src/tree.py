@@ -6,9 +6,6 @@ TODO: implement additional features
 
 ADDITIONAL FEATURES:
     - mistake tracking
-    
-
-
 
 """
 import sys
@@ -84,7 +81,7 @@ Shot class:
             case "error_prob": return self.error_prob
             case _: Shot.usage(1)
 
-    def update(self, shot, sort=True, rally_continues=["7", "8", "9", "continue"]):
+    def update(self, shot, sort=True, rally_continues: list=["7", "8", "9", "continue"]):
         """
             Combine this node's data with another node's data
             returns itself (a.k.a. the updated node)

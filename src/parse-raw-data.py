@@ -6,7 +6,7 @@ These arrays will have to be converted into trees (so each possible next shot ca
 import os
 import sys
 import csv
-from tree import Shot, sort_data, parse_individual_point
+from tree import sort_data, parse_individual_point
 
 ENDINGS = { # True means you just won the point, False means you just lost it
     False: "nwdxg!V@#", # oh no, you missed :c
