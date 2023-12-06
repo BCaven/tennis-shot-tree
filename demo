@@ -1,0 +1,4 @@
+#! /usr/bin/sh
+
+# demo
+./tennis-shot-tree -max -stat continue_prob -min -o -stat continue_prob -tree data/raw/charting-m-points-2010s.csv
