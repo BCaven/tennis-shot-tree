@@ -1,3 +1,18 @@
+"""
+Classes and functions that are used to build the shot tree
+
+
+TODO: implement additional features
+
+ADDITIONAL FEATURES:
+    - mistake tracking
+    
+
+
+
+"""
+import sys
+
 class Shot:
     """
         class that describes each Node of a tree
@@ -17,8 +32,27 @@ class Shot:
         self.continue_prob = 0
         self.winner_prob = 0
         self.error_prob = 0
+    
+    def usage(return_val):
+        print("""
+Shot class:
+    shot: str               = name of the shot
+    num_hit: int            = number of times this node happened
+    num_success: int        = number of times this shot was successful
+    next_shots: list[Shot]  = list of shot objects that occurred after this shot was hit
+    outcomes: dict[str]     = dictionary of possible endings for this shot and how many times they occurred
+                              this includes points that continued after the current shot
+                              shot depth is potentially included in the outcome dict
+                              shots that continued but did not specify depth are marked as 'continue'
+    continue_prob: float    = value from 0-1 describing likelyhood of point continuing after this shot
+    winner_prob: float      = value from 0-1 describing likelyhood of this shot being a winner
+    error_prob: float       = value from 0-1 describing likelyhood of this shot being an error
+
+        """)
+        sys.exit(return_val)
+
     @classmethod
-    def from_str(cls, raw_shot: str, good_endings="*", bad_endings="nwdxg!V@#"):
+    def from_str(cls, raw_shot: str, good_endings="*789", bad_endings="nwdxg!V@#"):
         """
             Build shot object from the raw string
             Assuming the shot is constructed as such:
@@ -41,7 +75,16 @@ class Shot:
             # or you just won the point
             return cls(cleaned_shot, 1, 1, [], {suffix: 1})
 
-    def update(self, shot, sort=True):
+    def get_stat(self, stat: str):
+        match stat:
+            case "num_hit": return self.num_hit
+            case "num_success": return self.num_success
+            case "continue_prob": return self.continue_prob
+            case "winner_prob": return self.winner_prob
+            case "error_prob": return self.error_prob
+            case _: Shot.usage(1)
+
+    def update(self, shot, sort=True, rally_continues=["7", "8", "9", "continue"]):
         """
             Combine this node's data with another node's data
             returns itself (a.k.a. the updated node)
@@ -53,7 +96,7 @@ class Shot:
         for outcome in shot.outcomes:
             try:
                 self.outcomes[outcome] += shot.outcomes[outcome]
-            except:
+            except Exception:
                 self.outcomes[outcome] = shot.outcomes[outcome]
         # sort the next_shots
         if sort:
@@ -61,7 +104,10 @@ class Shot:
         
         # update probabilities
         try:
-            self.continue_prob = self.outcomes['continue'] / self.num_hit
+            for c in rally_continues:
+                if c in self.outcomes:
+                    self.continue_prob += self.outcomes[c]
+            self.continue_prob /= self.num_hit
         except Exception:
             self.continue_prob = 0
         try:
@@ -133,9 +179,9 @@ def parse_individual_point(raw_point: str, possible_shots="fbrsvzopuylmhijktq") 
 
 def sort_data(raw_data) -> list[Shot]:
     """
-        Organize the data into a list of Shot objects
-        Each Shot object in the list is the head of a Shot Tree
-        This list should in theory only contain serves (represented by the numbers 4, 5, 6, and 0)
+        Shot tree starts with a placeholder "start" node
+        Each possible serve is contained in head.next_shots
+        from there the rally is stored in the tree as expected
     """
     tree_head = Shot("Start", 1, 1, [])
     for point in raw_data:
