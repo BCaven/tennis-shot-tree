@@ -153,7 +153,7 @@ def main():
                 if shot.num_hit > MIN_REQUIRED_SHOTS or not RESTRICTED_SEARCH:
                     print(f'{shot.shot}\tnumber of times hit: {shot.num_hit: 10.2f} | chance the point continues:{shot.continue_prob: 6.2f} | chance of winner:{shot.winner_prob: 6.2f} | chance of mistake:{shot.error_prob: 6.2f}')
                     num_shown+=1
-            choice = input("Please chose a shot from the list of shots ('Q' to quit): ")
+            choice = input("Please choose a shot from the list of shots ('Q' to quit): ")
             if choice == 'Q':
                 done = True
                 break
