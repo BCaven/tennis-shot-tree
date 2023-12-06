@@ -2,15 +2,14 @@
     Collection of algorithms that use the tree to decide what shot to hit
 
     Algorithms:
-        Static shot selection: minmax algorithm that tries to maximize chance that you win the point
-        Error avoidance: minmax algorithm that chooses the 'safest' path (path with smallest chance of mistake)
-
+        minmax self: minimize or maximize your own statistic
+        minmax opponent: minimize or maximize your opponent's statistic
 
     Available statistics:
-        num_hit
-        num_success
-        continue_prob
-        winner_prob
+        num_hit,
+        num_success,
+        continue_prob,
+        winner_prob,
         error_prob        
         
 """
@@ -54,6 +53,39 @@ def min_stat(stat: str, shot: Shot, head: Shot) -> Shot:
             next_shot = next
     return next_shot
 
+def max_opponent_stat(stat: str, shot: Shot, head: Shot) -> Shot:
+    """
+        Pick a shot that maximizes the opponent's stat
+
+        i.e. pick a stat that maximizes the likelyhood of the opponent hitting an error
+    
+        Looking for the shot with the highest minimum
+    """
+    
+    our_choice = shot.next_shots[0]
+    min = our_choice.next_shots[0]
+    for our_option in shot.next_shots:
+        opponent_option = min_stat(stat, our_option, head)
+        if opponent_option.get_stat(stat) < min.get_stat(stat):
+            min = opponent_option
+            our_choice = our_option
+    return our_choice
+
+def min_opponent_stat(stat: str, shot: Shot, head: Shot) -> Shot:
+    """
+        Pick the shot that minimizes the opponent's stats
+
+        Looking for the shot with the lowest maximum
+    """
+    our_choice = shot.next_shots[0]
+    max = our_choice.next_shots[0]
+    for our_option in shot.next_shots:
+        opponent_option = max_stat(stat, our_option, head)
+        if opponent_option.get_stat(stat) < max.get_stat(stat):
+            max = opponent_option
+            our_choice = our_option
+    return our_choice
+
 def breadth_first_search(shot:str, tree: Shot) -> Shot:
     """
         Search the tree for a node that is this shot
@@ -72,6 +104,79 @@ def breadth_first_search(shot:str, tree: Shot) -> Shot:
                 search_list.append(next)
     return tree # if we couldnt find one, just return the head of the tree
                 # this should never happen
+
+def human_vs_human(search_tree: Shot, max_score: int=10):
+    """
+        No AI involved, just the same ol' story of humans playin' humans
+    """
+    side = 1 # 1 is deuce, -1 is ad
+    score = (0, 0) # tuple containing the score of the players
+                   # NOTE: in "real" tennis, the score is structured in points, games, and sets
+                   #       however, to simplify, I am going to use 10-point tie-break scoring
+    server = 1 * (-1 * randint(0, 1)) # 1 is p1, -1 is p2, randomized who starts serving
+
+    while score[0] < max_score and score[1] < max_score:
+        p1_score, p2_score = score
+        point_finished = False
+        next = server
+        current_shot = search_tree
+        while not point_finished: # point
+            print("Player", 1 if next > 0 else 2, "'s turn:", sep="")
+            if not current_shot.next_shots:
+                current_shot = breadth_first_search(current_shot.shot, search_tree)
+            if current_shot == search_tree:
+                print("The BFS failed to find a shot of that type")
+            print("\nOptions:")
+            num_shown = 0
+            for shot in current_shot.next_shots:
+                if num_shown >= MAX_OPTIONS:
+                    break
+                if shot.num_hit > MIN_REQUIRED_SHOTS or not RESTRICTED_SEARCH:
+                    print(f'{shot.shot}\tnumber of times hit: {shot.num_hit: 10.2f} | chance the point continues:{shot.continue_prob: 6.2f} | chance of winner:{shot.winner_prob: 6.2f} | chance of mistake:{shot.error_prob: 6.2f}')
+                    num_shown+=1
+            choice = input("Please choose a shot from the list of shots: ")
+            try:
+                shot_index = [s.shot for s in current_shot.next_shots].index(choice)
+                current_shot = current_shot.next_shots[shot_index]
+            except ValueError:
+                print("sorry that option was not found")
+            
+            # now check if the shot succeeded
+            chance_of_making_the_shot = randint(0, RAND_VAL_RESOLUTION) / RAND_VAL_RESOLUTION
+            if chance_of_making_the_shot > current_shot.error_prob:
+                # yay you made the shot, now check if it was a winner
+                chance_of_winner = randint(0, RAND_VAL_RESOLUTION) / RAND_VAL_RESOLUTION
+                if chance_of_winner < current_shot.winner_prob:
+                    # yay you hit a winner
+                    point_finished = True
+                    if next == 1:
+                        p1_score += 1
+                    else:
+                        p2_score += 1
+                # if you did not hit a winner and did not miss it, then the point just continues
+            else:
+                # oh no, you missed it
+                point_finished = True
+                if next == 1:
+                    p2_score += 1
+                else:
+                    p1_score += 1
+            
+            next *= -1
+            
+
+        score = (p1_score, p2_score)
+        side *= -1 # switch sides
+        if p1_score + p2_score == 1:
+            server *= -1 # switch server if it was the first point
+        elif (p1_score + p2_score - 1) % 2 == 0:
+            server *= -1
+    print("Final Score:")
+    print(score[0], "-", score[1])
+    if score[0] > score[1]:
+        print("Player 1 wins!")
+    else:
+        print("Player 2 wins!")
 
 def human_vs_alg(search_tree: Shot, algorithm, stat: str="continue_prob", max_score: int=10):
     """
@@ -165,3 +270,72 @@ def human_vs_alg(search_tree: Shot, algorithm, stat: str="continue_prob", max_sc
             server *= -1 # switch server if it was the first point
         elif (p1_score + p2_score - 1) % 2 == 0:
             server *= -1
+    
+    print("Final Score:")
+    print(score[0], "-", score[1])
+    if score[0] > score[1]:
+        print("Player 1 wins!")
+    else:
+        print("Player 2 wins!")
+
+# TODO: write alg-vs-alg function
+def alg_vs_alg(search_tree: Shot, algorithms: list[function, function], stat: list[str, str]=["continue_prob", "continue_prob"], max_score: int=10):
+    """
+        TODO: rework how algorithms are passed to this function
+
+        Same rules as human_vs_human and human_vs_alg
+    """
+    side = 1 # 1 is deuce, -1 is ad
+    score = (0, 0) # tuple containing the score of the players
+                   # NOTE: in "real" tennis, the score is structured in points, games, and sets
+                   #       however, to simplify, I am going to use 10-point tie-break scoring
+    server = 1 * (-1 * randint(0, 1)) # 1 is p1, -1 is p2, randomized who starts serving
+
+    while score[0] < max_score and score[1] < max_score:
+        p1_score, p2_score = score
+        point_finished = False
+        next = server
+        current_shot = search_tree
+        while not point_finished: # point
+            alg = 0 if next > 0 else 1
+            current_shot = algorithms[alg](stat[alg], current_shot, search_tree)
+            if current_shot == search_tree:
+                print("The BFS failed to find a shot of that type...")
+            
+            # now check if the shot succeeded
+            chance_of_making_the_shot = randint(0, RAND_VAL_RESOLUTION) / RAND_VAL_RESOLUTION
+            if chance_of_making_the_shot > current_shot.error_prob:
+                # yay you made the shot, now check if it was a winner
+                chance_of_winner = randint(0, RAND_VAL_RESOLUTION) / RAND_VAL_RESOLUTION
+                if chance_of_winner < current_shot.winner_prob:
+                    # yay you hit a winner
+                    point_finished = True
+                    if next == 1:
+                        p1_score += 1
+                    else:
+                        p2_score += 1
+                # if you did not hit a winner and did not miss it, then the point just continues
+            else:
+                # oh no, you missed it
+                point_finished = True
+                if next == 1:
+                    p2_score += 1
+                else:
+                    p1_score += 1
+            
+            next *= -1
+            
+
+        score = (p1_score, p2_score)
+        side *= -1 # switch sides
+        if p1_score + p2_score == 1:
+            server *= -1 # switch server if it was the first point
+        elif (p1_score + p2_score - 1) % 2 == 0:
+            server *= -1
+    
+    print("Final Score:")
+    print(score[0], "-", score[1])
+    if score[0] > score[1]:
+        print("Player 1 wins!")
+    else:
+        print("Player 2 wins!")
