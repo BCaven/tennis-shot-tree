@@ -60,7 +60,7 @@ Shot class:
         # if the shot does not HAVE an ending, it was successful
         # split the shot
         
-        ending = raw_shot[-1]
+        bad_ending = any(s in bad_endings for s in raw_shot)
         cleaned_shot = raw_shot.strip(good_endings + bad_endings)
         # remove lets c5 -> 5
         for c in prefix:
@@ -68,7 +68,7 @@ Shot class:
         suffix = "".join([c if c in good_endings+bad_endings else "" for c in raw_shot])
         if not suffix:
             suffix = "continue"
-        if ending in bad_endings:
+        if bad_ending:
             # you just lost the point
             return cls(cleaned_shot, 1, 0, [], {suffix: 1})
         else:
@@ -143,22 +143,26 @@ Shot class:
         prob_sum = round(self.continue_prob + self.winner_prob + self.error_prob, 5)
         assert prob_sum == 1, "percentages do not equal the correct value"
         return self
-    def add_next_shot(self, next_shot, sort=True):
+    def add_next_shot(self, next_shot, sort=True, require_direction=True):
         """
             Add a next_shot
         """
+
         next_shot_indexes = [s.shot for s in self.next_shots]
         if next_shot.shot in next_shot_indexes:
             index = next_shot_indexes.index(next_shot.shot)
             self.next_shots[index].update(next_shot, sort=sort)
         else:
             self.next_shots.append(next_shot)
+        
     
-    def add_point(self, shots: list, ignored_points="SRPQ0"):
+    def add_point(self, shots: list, ignored_points="SRPQ0;"):
         """
             Parameter: list describing a point
 
             Adds that point to the tree
+
+            TODO: ignore shots that do not include direction (i.e. 'b' instead of 'b3')
         
         """
         if not shots:
@@ -168,7 +172,7 @@ Shot class:
         if not raw_next:
             return
         next_shot = Shot.from_str(raw_next)
-        if next_shot.shot in ignored_points:
+        if any(s in ignored_points for s in next_shot.shot):
             return
         try:
             # the next shot is already one of the next shots
@@ -181,6 +185,26 @@ Shot class:
             #print("shot", next_shot, "has not been seen before")
             self.next_shots.append(next_shot)
             next_shot.add_point(shots)
+
+    def clean_tree(self, max_keep=10, clean_dead=[]):
+        """
+            Remove directionless shots if versions are present that have direction
+
+            TODO: make this method usable
+        """
+        # assumption: tree is sorted
+        self.next_shots = self.next_shots[:max_keep]
+        indexes_to_remove = set()
+        for index, shot in enumerate(self.next_shots):
+            for item in clean_dead:
+                if shot.shot == item:
+                    indexes_to_remove.add(index)
+            if index not in indexes_to_remove:
+                shot.clean_tree(max_keep)
+        indexes_to_remove = list(indexes_to_remove)
+        indexes_to_remove.sort(reverse=True)
+        for i in indexes_to_remove:
+            self.next_shots.pop(i)
 
 
 

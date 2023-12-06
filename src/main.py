@@ -25,7 +25,9 @@ Tennis Shot Tree
           -s    SCORE       : the score that the players are trying to reach
           -tree PATH        : path to the file used to build the tree
           -e    ENCODING    : encoding used on data file
-          
+          -v                : turn on verbose output
+          -n NUM_NODES      : the maximum number of next_shots any node can have
+
           STAT
             num_hit         : the number of times a specific shot was seen
             num_success     : the number of times that shot was successful
@@ -69,6 +71,8 @@ def main():
     algs = []
     stats = []
     max_score = 10
+    verbose = False
+    max_nodes = 6
     try:
         while arguments:
             current_arg = arguments.pop(0)
@@ -100,6 +104,10 @@ def main():
                 tree_path = arguments.pop(0)
             elif current_arg == '-e':
                 encoding = arguments.pop(0)
+            elif current_arg == '-v':
+                verbose = True
+            elif current_arg == '-n':
+                max_nodes = int(arguments.pop(0))
             else:
                 usage(1)
             
@@ -110,19 +118,20 @@ def main():
     # build tree
     print("building search tree from", tree_path)
     search_tree = sort_data(get_point_data(tree_path, encoding=encoding))
+    search_tree.clean_tree(max_nodes)
     print("done")
     if humans == 1:
         if len(algs) >= 1 and len(stats) >= 1:
-            human_vs_alg(search_tree, algs[0], stats[0], max_score)
+            human_vs_alg(search_tree, algs[0], stats[0], max_score, verbose)
         else:
             usage(1)
     elif humans == 0:
         if len(algs) >= 2 and len(stats) >= 2:
-            alg_vs_alg(search_tree, algs[:2], stats[:2], max_score)
+            alg_vs_alg(search_tree, algs[:2], stats[:2], max_score, verbose)
         else:
             usage(1)
     else:
-        human_vs_human(search_tree, max_score)
+        human_vs_human(search_tree, max_score, verbose)
 
 if __name__ == "__main__":
     main()

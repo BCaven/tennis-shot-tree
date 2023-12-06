@@ -21,7 +21,7 @@ RESTRICTED_SEARCH = False
 MAX_OPTIONS = 5
 RAND_VAL_RESOLUTION = 1000
 
-def max_stat(stat: str, shot: Shot, head: Shot) -> Shot:
+def max_stat(stat: str, shot: Shot, head: Shot, verbose=False) -> Shot:
     """
         Maximize the desired stat
     
@@ -29,10 +29,12 @@ def max_stat(stat: str, shot: Shot, head: Shot) -> Shot:
     if len(shot.next_shots) < MIN_REQUIRED_SHOTS:
         shot = breadth_first_search(shot.shot, head)
         if shot == head:
-            print("The BFS failed to find a shot of that type")
+            if verbose:
+                print("The BFS failed to find a shot of that type")
             return head
         else:
-            print("The BFS has found an equivalent node")
+            if verbose:
+                print("The BFS has found an equivalent node")
 
     next_shot = shot.next_shots[0]
     max = next_shot.get_stat(stat)
@@ -42,17 +44,19 @@ def max_stat(stat: str, shot: Shot, head: Shot) -> Shot:
             next_shot = next
     return next_shot
 
-def min_stat(stat: str, shot: Shot, head: Shot) -> Shot:
+def min_stat(stat: str, shot: Shot, head: Shot, verbose=False) -> Shot:
     """
         Minimize the desired stat
     """
     if len(shot.next_shots) < MIN_REQUIRED_SHOTS:
         shot = breadth_first_search(shot.shot, head)
         if shot == head:
-            print("The BFS failed to find a shot of that type")
+            if verbose:
+                print("The BFS failed to find a shot of that type")
             return head
         else:
-            print("The BFS has found an equivalent node")
+            if verbose:
+                print("The BFS has found an equivalent node")
 
     next_shot = shot.next_shots[0]
     min = next_shot.get_stat(stat)
@@ -62,7 +66,7 @@ def min_stat(stat: str, shot: Shot, head: Shot) -> Shot:
             next_shot = next
     return next_shot
 
-def max_opponent_stat(stat: str, shot: Shot, head: Shot) -> Shot:
+def max_opponent_stat(stat: str, shot: Shot, head: Shot, verbose=False) -> Shot:
     """
         Pick a shot that maximizes the opponent's stat
 
@@ -70,7 +74,15 @@ def max_opponent_stat(stat: str, shot: Shot, head: Shot) -> Shot:
     
         Looking for the shot with the highest minimum
     """
-    
+    if not shot.next_shots or not shot.next_shots[0].next_shots:
+        shot = breadth_first_search(shot.shot, head)
+        if shot == head:
+            if verbose:
+                print("The BFS failed to find a shot of that type")
+            return head
+        else:
+            if verbose:
+                print("The BFS has found an equivalent node")
     our_choice = shot.next_shots[0]
     min = our_choice.next_shots[0]
     for our_option in shot.next_shots:
@@ -80,12 +92,21 @@ def max_opponent_stat(stat: str, shot: Shot, head: Shot) -> Shot:
             our_choice = our_option
     return our_choice
 
-def min_opponent_stat(stat: str, shot: Shot, head: Shot) -> Shot:
+def min_opponent_stat(stat: str, shot: Shot, head: Shot, verbose=False) -> Shot:
     """
         Pick the shot that minimizes the opponent's stats
 
         Looking for the shot with the lowest maximum
     """
+    if not shot.next_shots or not shot.next_shots[0].next_shots:
+        shot = breadth_first_search(shot.shot, head)
+        if shot == head:
+            if verbose:
+                print("The BFS failed to find a shot of that type")
+            return head
+        else:
+            if verbose:
+                print("The BFS has found an equivalent node")
     our_choice = shot.next_shots[0]
     max = our_choice.next_shots[0]
     for our_option in shot.next_shots:
@@ -95,7 +116,7 @@ def min_opponent_stat(stat: str, shot: Shot, head: Shot) -> Shot:
             our_choice = our_option
     return our_choice
 
-def breadth_first_search(shot:str, tree: Shot) -> Shot:
+def breadth_first_search(shot:str, tree: Shot, verbose=True) -> Shot:
     """
         Search the tree for a node that is this shot
 
@@ -111,11 +132,12 @@ def breadth_first_search(shot:str, tree: Shot) -> Shot:
             if next.next_shots: # if the next shot is not the end of the tree, 
                                 # add it to the list of nodes to be expanded
                 search_list.append(next)
-    print("BFS failed to find shot of type:", shot)
-    return tree # if we couldnt find one, just return the head of the tree
+    if verbose:
+        print("BFS failed to find shot of type:", shot)
+    return tree.next_shots[0] # if we couldnt find one, just return the head of the tree
                 # this should never happen
 
-def human_vs_human(search_tree: Shot, max_score: int=10):
+def human_vs_human(search_tree: Shot, max_score: int=10, verbose=False):
     """
         No AI involved, just the same ol' story of humans playin' humans
     """
@@ -137,9 +159,11 @@ def human_vs_human(search_tree: Shot, max_score: int=10):
             if len(current_shot.next_shots) < MIN_REQUIRED_SHOTS:
                 current_shot = breadth_first_search(current_shot.shot, search_tree)
                 if current_shot == search_tree:
-                    print("The BFS failed to find a shot of that type")
+                    if verbose:
+                        print("The BFS failed to find a shot of that type")
                 else:
-                    print("The BFS has found an equivalent node")
+                    if verbose:
+                        print("The BFS has found an equivalent node")
             print("Options:")
             num_shown = 0
             for shot in current_shot.next_shots:
@@ -193,7 +217,7 @@ def human_vs_human(search_tree: Shot, max_score: int=10):
     else:
         print("Player 2 wins!")
 
-def human_vs_alg(search_tree: Shot, algorithm, stat: str="continue_prob", max_score: int=10):
+def human_vs_alg(search_tree: Shot, algorithm, stat: str="continue_prob", max_score: int=10, verbose=False):
     """
         TODO: rework how algorithms are passed to this function
 
@@ -226,6 +250,7 @@ def human_vs_alg(search_tree: Shot, algorithm, stat: str="continue_prob", max_sc
     while score[0] < max_score and score[1] < max_score:
         p1_score, p2_score = score
         print("Current score: ", p1_score, "-", p2_score)
+        print("Server: Player", 1 if server > 0 else 2)
         point_finished = False
         next = server
         current_shot = search_tree
@@ -235,16 +260,18 @@ def human_vs_alg(search_tree: Shot, algorithm, stat: str="continue_prob", max_sc
                 if len(current_shot.next_shots) < MIN_REQUIRED_SHOTS:
                     current_shot = breadth_first_search(current_shot.shot, search_tree)
                     if current_shot == search_tree:
-                        print("The BFS failed to find a shot of that type")
+                        if verbose:
+                            print("The BFS failed to find a shot of that type")
                     else:
-                        print("The BFS has found an equivalent node")
+                        if verbose:
+                            print("The BFS has found an equivalent node")
                 print("Options:")
                 num_shown = 0
                 for shot in current_shot.next_shots:
                     if num_shown >= MAX_OPTIONS:
                         break
                     if shot.num_hit > MIN_REQUIRED_SHOTS or not RESTRICTED_SEARCH:
-                        print(f'{shot.shot}\tnumber of times hit: {shot.num_hit: 10.2f} | chance the point continues:{shot.continue_prob: 6.2f} | chance of winner:{shot.winner_prob: 6.2f} | chance of mistake:{shot.error_prob: 6.2f}')
+                        print(f'{shot.shot}\tnumber of times hit: {shot.num_hit: 10.2f} | chance the point continues:{shot.continue_prob: 6.2f} | chance of winner:{shot.winner_prob: 6.2f} | chance of mistake:{shot.error_prob: 6.2f}\n\ttheir next shots: {", ".join([s.shot for s in shot.next_shots])}')
                         num_shown+=1
                 choice = input("Please choose a shot from the list of shots: ")
                 try:
@@ -254,11 +281,12 @@ def human_vs_alg(search_tree: Shot, algorithm, stat: str="continue_prob", max_sc
                     print("sorry that option was not found")
                     continue
             elif next == -1: # alg picks shot
-                current_shot = algorithm(stat, current_shot, search_tree)
+                current_shot = algorithm(stat, current_shot, search_tree, verbose)
                 if current_shot == search_tree:
-                    print("The BFS failed to find a shot of that type...")
+                    if verbose:
+                        print("The BFS failed to find a shot of that type...")
                 else:
-                    print("alg hit:", current_shot.shot)
+                    print("alg hit:", f'{current_shot.shot}\tnumber of times hit: {current_shot.num_hit: 10.2f} | chance the point continues:{current_shot.continue_prob: 6.2f} | chance of winner:{current_shot.winner_prob: 6.2f} | chance of mistake:{current_shot.error_prob: 6.2f}')
             else:
                 print("oh no, something went wrong")
             
@@ -301,7 +329,7 @@ def human_vs_alg(search_tree: Shot, algorithm, stat: str="continue_prob", max_sc
         print("Player 2 wins!")
 
 # TODO: write alg-vs-alg function
-def alg_vs_alg(search_tree: Shot, algorithms: list, stat: list[str, str]=["continue_prob", "continue_prob"], max_score: int=10):
+def alg_vs_alg(search_tree: Shot, algorithms: list, stat: list[str, str]=["continue_prob", "continue_prob"], max_score: int=10, verbose=False):
     """
         TODO: rework how algorithms are passed to this function
 
@@ -315,14 +343,18 @@ def alg_vs_alg(search_tree: Shot, algorithms: list, stat: list[str, str]=["conti
 
     while score[0] < max_score and score[1] < max_score:
         p1_score, p2_score = score
+        print("Current score: ", p1_score, "-", p2_score)
+        print("Server: Player", 1 if server > 0 else 2)
         point_finished = False
         next = server
         current_shot = search_tree
         while not point_finished: # point
-            alg = 0 if next > 0 else 1
-            current_shot = algorithms[alg](stat[alg], current_shot, search_tree)
+            current_shot = algorithms[0 if next > 0 else 1](stat[0 if next > 0 else 1], current_shot, search_tree, verbose)
             if current_shot == search_tree:
-                print("The BFS failed to find a shot of that type...")
+                if verbose:
+                    print("The BFS failed to find a shot of that type...")
+            else:
+                print("player", 1 if next > 0 else 2, "hit:", f'{current_shot.shot}\tnumber of times hit: {current_shot.num_hit: 10.2f} | chance the point continues:{current_shot.continue_prob: 6.2f} | chance of winner:{current_shot.winner_prob: 6.2f} | chance of mistake:{current_shot.error_prob: 6.2f}')
             
             # now check if the shot succeeded
             chance_of_making_the_shot = randint(0, RAND_VAL_RESOLUTION) / RAND_VAL_RESOLUTION
