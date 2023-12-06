@@ -181,7 +181,7 @@ def parse_individual_point(raw_point: str, possible_shots="fbrsvzopuylmhijktq") 
         shots.insert(0, current_shot)
     return shots
 
-def sort_data(raw_data) -> list[Shot]:
+def sort_data(raw_data) -> Shot:
     """
         Shot tree starts with a placeholder "start" node
         Each possible serve is contained in head.next_shots
