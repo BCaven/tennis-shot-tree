@@ -1,0 +1,16 @@
+#!/usr/bin/sh
+
+if [ ! -d "data/" ] ; then
+    mkdir "data/"
+fi
+if [ ! -d "data/raw" ] ; then
+    mkdir "data/raw/"
+    if [ ! -d "tmp/" ] ; then
+        git clone "https://github.com/JeffSackmann/tennis_MatchChartingProject.git" tmp
+    fi
+    # move over just the .csv files
+    echo "copying .csv files..."
+    mv tmp/*.csv data/raw/
+    echo "removing tmp/"
+    rm -rf "tmp/"
+fi
