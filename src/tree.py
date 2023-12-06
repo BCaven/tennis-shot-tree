@@ -33,17 +33,17 @@ class Shot:
     def usage(return_val):
         print("""
 Shot class:
-    shot: str               = name of the shot
-    num_hit: int            = number of times this node happened
-    num_success: int        = number of times this shot was successful
-    next_shots: list[Shot]  = list of shot objects that occurred after this shot was hit
-    outcomes: dict[str]     = dictionary of possible endings for this shot and how many times they occurred
-                              this includes points that continued after the current shot
-                              shot depth is potentially included in the outcome dict
-                              shots that continued but did not specify depth are marked as 'continue'
-    continue_prob: float    = value from 0-1 describing likelyhood of point continuing after this shot
-    winner_prob: float      = value from 0-1 describing likelyhood of this shot being a winner
-    error_prob: float       = value from 0-1 describing likelyhood of this shot being an error
+    shot            : str           = name of the shot
+    num_hit         : int           = number of times this node happened
+    num_success     : int           = number of times this shot was successful
+    next_shots      : list[Shot]    = list of shot objects that occurred after this shot was hit
+    outcomes        : dict[str]     = dictionary of possible endings for this shot and how many times they occurred
+                                      this includes points that continued after the current shot
+                                      shot depth is potentially included in the outcome dict
+                                      shots that continued but did not specify depth are marked as 'continue'
+    continue_prob   : float         = value from 0-1 describing likelyhood of point continuing after this shot
+    winner_prob     : float         = value from 0-1 describing likelyhood of this shot being a winner
+    error_prob      : float         = value from 0-1 describing likelyhood of this shot being an error
 
         """)
         sys.exit(return_val)
@@ -85,6 +85,9 @@ Shot class:
         """
             Combine this node's data with another node's data
             returns itself (a.k.a. the updated node)
+
+            TODO: make the `sort` parameter a lambda function so the user can use custom
+                  sorting functions
         """
         self.num_hit += shot.num_hit
         self.num_success += shot.num_success
@@ -95,7 +98,11 @@ Shot class:
                 self.outcomes[outcome] += shot.outcomes[outcome]
             except Exception:
                 self.outcomes[outcome] = shot.outcomes[outcome]
-        # sort the next_shots
+        # sort the next_shots, shots that got hit more times are first
+        # this is mostly just for usability so more common shots are listed before
+        # uncommon shots
+        # This is opperating under the assumption that less common shots are less
+        # desirable or in some way not as likely (seeing as they got hit fewer times)
         if sort:
             self.next_shots.sort(key=lambda x: x.num_hit, reverse=True)
         
@@ -116,20 +123,20 @@ Shot class:
         except Exception:
             self.error_prob = 0
         return self
-    def add_next_shot(self, next_shot):
+    def add_next_shot(self, next_shot, sort=True):
         """
             Add a next_shot
         """
         next_shot_indexes = [s.shot for s in self.next_shots]
         if next_shot.shot in next_shot_indexes:
             index = next_shot_indexes.index(next_shot.shot)
-            self.next_shots[index].update(next_shot)
+            self.next_shots[index].update(next_shot, sort=sort)
         else:
             self.next_shots.append(next_shot)
     
     def add_point(self, shots: list):
         """
-            Parameter: string describing a point
+            Parameter: list describing a point
 
             Adds that point to the tree
         

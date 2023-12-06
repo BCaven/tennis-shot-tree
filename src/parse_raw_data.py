@@ -1,7 +1,6 @@
-#!/usr/bin/env python3
 """
-Parse raw data into arrays of shots hit in each point
-These arrays will have to be converted into trees (so each possible next shot can be determined) at some point
+Parse raw data and perform associated tasks
+
 """
 import os
 import sys
@@ -19,23 +18,25 @@ def usage(return_val):
     print("""
 Raw Data Parser:
     USAGE: python3 parse-raw-data.py [FLAGS] [OPTIONS]
-    -d DIRECTORY: directory of raw data
-    -f FILE: file to parse
-    -o DIRECTORY: directory to place output data in
-    -t TASK: what the parser should do
-    -e ENCODING: encoding of the file being read in
-    -h: print out this message
+    -d DIRECTORY        : directory of raw data
+    -f FILE             : file to parse
+    -o DIRECTORY        : directory to place output data in
+    -t TASK             : what the parser should do
+    -e ENCODING         : encoding of the file being read in
+    -h                  : print out this message
 
     DEFAULTS:
-    RAW_DATA_DIRECTORY = data/raw/
-    RAW_FILE = charting-m-points-2010s.csv
-    OUTPUT_DIRECTORY = data/data-sorted-by-player/
-    TASK = separate_by_player
+    RAW_DATA_DIRECTORY  = data/raw/
+    RAW_FILE            = charting-m-points-2010s.csv
+    OUTPUT_DIRECTORY    = data/data-sorted-by-player/
+    TASK                = separate_by_player
 
     SUPPORTED TASKS:
-    separate_by_player: read the raw file and sort match data into specific player files (appends to the file, so chance of duplicate lines)
-    read_raw_data: print raw data dictionaries to stdin
-    parse_all_data: split each point into individual shots and print the points to stdin
+    separate_by_player  : read the raw file and sort match data into specific player files (appends to the file, so chance of duplicate lines)
+    read_raw_data       : print raw data dictionaries to stdin
+    parse_all_data      : split each point into individual shots and print the points to stdin
+    create_tree         : generate a tree based on the given DIRECTORY/FILE specified by -d and -f
+                          also allows the user to traverse the generated tree
     """)
     sys.exit(return_val)
 
@@ -67,7 +68,8 @@ def read_raw_data(raw_path: str, encoding="utf8") -> dict:
 
 def get_point_data(raw_data, encoding="utf8"):
     """
-    returns just the point data
+    returns just the point data, no distinction is made between points
+    off first and second serves
     """
     raw = read_raw_data(raw_data, encoding=encoding)
     points = []
@@ -79,7 +81,7 @@ def get_point_data(raw_data, encoding="utf8"):
 
 def main():
     """
-        Main function, hooray
+        Main function
     """
     raw_data_directory = "data/data-sorted-by-player/"
     raw_data_file = "Roger_Federer.csv"
@@ -134,9 +136,7 @@ def main():
                 print(" ".join(parse_individual_point(second_serve)))
     
     elif task == "create_tree":
-        # assuming the data directory and data file have been specified
         data = sort_data(get_point_data(raw_data_directory + raw_data_file, encoding=encoding))
-        # clean out the things that do not have any next_shots or only have one next_shot
         print(data.shot)
         done = False
         selected = data
